@@ -30,7 +30,8 @@ function startup() {
             userCreate()
         } else {
             console.log("Invalid Input.")
-            sleep(1000).then(() => { console.clear(); startup() });
+            sleep(1000).then(() => { console.clear();
+                startup() });
         }
     });
 }
@@ -44,13 +45,15 @@ function userLogin() {
             rl.question(`Password: `, (answer) => {
                 const readpassword = fs.readFileSync(`./users/${username}.json`)
                 const user = JSON.parse(readpassword)
-            
+
                 if (bcrypt.compareSync(answer, user.password)) {
                     console.log("Login Successful.")
-                    sleep(2000).then(() => { console.clear(); startup() });
+                    sleep(2000).then(() => { console.clear();
+                        startup() });
                 } else {
                     console.log("Login Failed.")
-                    sleep(2000).then(() => { console.clear(); userLogin() });
+                    sleep(2000).then(() => { console.clear();
+                        userLogin() });
                 }
             })
         } else if (answer == 0) {
@@ -59,7 +62,8 @@ function userLogin() {
         } else {
             console.clear()
             console.log("User not found.")
-            sleep(2000).then(() => { console.clear(); userLogin() });
+            sleep(2000).then(() => { console.clear();
+                userLogin() });
         }
     })
 }
@@ -75,8 +79,9 @@ function userCreate() {
     rl.question(`Enter 0 to go back.\nNew username: `, (answer) => {
         if (fs.existsSync(`./users/${answer}.json`)) {
             console.log("Username already taken.")
-            sleep(2000).then(() => { console.clear(); userCreate() });
-        } else if (answer == 0){
+            sleep(2000).then(() => { console.clear();
+                userCreate() });
+        } else if (answer == 0) {
             console.clear()
             startup()
         } else {
@@ -87,12 +92,18 @@ function userCreate() {
                 user.password = hash
                 fs.writeFileSync(`${userdb}/${user.username}.json`, JSON.stringify(user))
                 console.log("User Created.")
-                sleep(2000).then(() => { console.clear(); startup() });
-                
+                sleep(2000).then(() => { console.clear();
+                    startup() });
+
             })
         }
     })
 }
 
-startup()
+function SignedIn(username, userID) {
+    console.clear()
+    console.log(`Welcome ${username}`)
+}
 
+
+startup()
