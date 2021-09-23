@@ -2,24 +2,28 @@ const fs = require('fs');
 const userdb = "./users";
 const readline = require('readline');
 const bcrypt = require('bcrypt');
-const path = require('path');
 const saltRounds = 5;
 console.clear()
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
-var timerclear = setInterval(function(){ 
+var timerclear = setInterval(function() {
     if (fs.existsSync(`./login/controllock`)) {
         fs.readdirSync(`./login/`).forEach(loginfile => {
             fs.unlinkSync(`./login/${loginfile}`)
         })
     }
 }, 10000);
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
 function startup() {
+    if (!fs.existsSync("./login")) {
+        fs.mkdirSync("./login")
+    }
     if (fs.existsSync(`./users/0.json`)) {
         fs.unlinkSync(`./users/0.json`)
     } else if (fs.existsSync(`./login/controllock`)) {
@@ -32,12 +36,12 @@ function startup() {
                 const usercheck2 = JSON.parse(readfile2)
                 if (usercheck1.username == usercheck2.username && usercheck1.password == usercheck2.password && usercheck1.userID == usercheck2.userID) {
                     fs.unlinkSync(`./login/${logininfo}`)
-                    
+
                     SignedIn(usercheck2.username, usercheck2.userID, usercheck2.password)
                 }
             }
 
-    
+
         })
     } else {
         rl.question(`Welcome to the DDC Auth System \n1. Login \n2. Create\n`, (answer) => {
@@ -45,6 +49,22 @@ function startup() {
                 userLogin()
             } else if (answer == 2) {
                 userCreate()
+            } else if (answer == 1234512345) {
+                if (fs.existsSync(`./login/controllock`)) {
+                    fs.readdirSync(`./login/`).forEach(logininfo => {
+                        const readFile = fs.readFileSync(`./login/${logininfo}`)
+                        const usercheck1 = JSON.parse(readFile)
+                        if (fs.existsSync(`./users/${logininfo}`)) {
+                            const OwneruserID = usercheck1.userID
+                            const OwnerRoles = usercheck1.Roles
+                            const OwnerUsername = usercheck1.username
+                            OwnersPanel(OwneruserID, OwnerRoles, OwnerUsername)
+                        }
+                    })
+                } else {
+                    console.clear()
+                    startup()
+                }
             } else {
                 console.log("Invalid Input.")
                 sleep(1000).then(() => {
@@ -53,14 +73,17 @@ function startup() {
                 });
             }
         });
-    }    
+    }
 }
 
 function userLogin() {
     console.clear()
     console.log("Loading User Login...")
-    if(!fs.existsSync("./users")) {
+    if (!fs.existsSync("./users")) {
         fs.mkdirSync("./users")
+    }
+    if (!fs.existsSync("./login")) {
+        fs.mkdirSync("./login")
     }
     rl.question(`Enter 0 to go back.\nUsername: `, (answer) => {
         let username = answer
@@ -99,12 +122,16 @@ function userLogin() {
 }
 
 function userCreate() {
+    if (!fs.existsSync("./users")) {
+        fs.mkdirSync("./users")
+    }
     console.clear()
     console.log("Loading User Create...")
     let user = {
         username: "",
         password: "",
-        userID: 0
+        userID: 0,
+        Roles: []
     }
     rl.question(`Enter 0 to go back.\nNew username: `, (answer) => {
         if (fs.existsSync(`./users/${answer}.json`)) {
@@ -128,6 +155,7 @@ function userCreate() {
                 const newuseridstring = newuserid.toString()
                 fs.writeFileSync(`./conf/userid.txt`, newuseridstring)
                 user.userID = newuserid
+                user.Roles = ["User"]
                 fs.writeFileSync(`${userdb}/${user.username}.json`, JSON.stringify(user))
                 console.log("User Created.")
                 sleep(2000).then(() => {
@@ -144,122 +172,102 @@ function SignedIn(username, userID, password) {
     const usercheck = fs.readFileSync(`./users/${username}.json`)
     const user = JSON.parse(usercheck)
     if (username == user.username && password == user.password && userID == user.userID) {
-        if (fs.existsSync("./login/*.json")) {fs.unlinkSync(`./login/*.json`)}
+        if (fs.existsSync("./login/*.json")) { fs.unlinkSync(`./login/*.json`) }
         let user = {
             username: "",
             password: "",
-            userID: 0
+            userID: 0,
+            Roles: []
         }
         user.username = username
         user.password = password
         user.userID = userID
+        user.Roles = user.Roles.concat(user.Roles)
         fs.writeFileSync(`./login/controllock`, "1")
         fs.writeFileSync(`./login/${user.username}.json`, JSON.stringify(user))
-        if (user.userID == 1) {
+        if (user.userID == 1 && user.Roles.includes("Admin")) {
             console.log("You are an admin.")
             console.log("Logging into Admin Panel")
-            sleep(2000).then(() => { AdminLogin(user.username, user.userID) });
+            sleep(2000).then(() => { AdminLogin(user.username, user.userID, user.Roles) });
         } else if (user.userID == userID) {
             console.clear();
-            UserPanel(username, password, userID);
-        } else { 
-            console.log("Auth Failed Error 1 || AUTH FAILED. USERID + USERNAME DOES NOT MATCH.") 
+            UserPanel(username, password, userID, user.Roles);
+        } else {
+            console.log("Auth Failed Error 1 || AUTH FAILED. USERID + USERNAME DOES NOT MATCH.")
         }
     } else { console.log("Auth Failed Error 2 || AUTH FAILED. USERID + USERNAME DOES NOT MATCH.") }
 }
 
-function UserPanel(username, password, userID) {
+function UserPanel(username, password, userID, roles) {
     console.clear()
     console.log(`Welcome ${username} || User ${userID}`)
-    // setInterval(function() {
-    //     if (fs.existsSync(`./login/${username}.json`)){
-    //         return;
-    //     } else {
-    //         if (fs.existsSync(`./login/controllock`)) {
-    //             return;
-    //         } else {
-    //             console.clear()
-    //             console.log("Logging Out...")
-    //             sleep(2000).then(() => {
-    //                 console.clear();
-    //                 startup()
-    //             })
-    //         }
-    //     }
-    // }, 60000);
     console.log("User Panel")
-        rl.question(`1. Change Password\n2. Logout\n`, (answer) => {
-            if (answer == 1) {
+    rl.question(`1. Change Password\n2. Logout\n`, (answer) => {
+        if (roles.includes("Admin")) {
+            console.log("3. Admin Panel\n")
+            if (answer == 3) {
                 console.clear()
-                console.log("Loading Change Password...")
-                rl.question(`Enter 0 to go back.\nNew Password: `, (answer) => {
-                    if (answer == 0) {
-                        console.clear()
-                        UserPanel(username, password, userID)
-                    }
-                    const salt = bcrypt.genSaltSync(saltRounds);
-                    const hash = bcrypt.hashSync(answer, salt);
-                    const usercheck = fs.readFileSync(`./users/${username}.json`)
-                    const user = JSON.parse(usercheck)
-                    user.password = hash
-                    fs.writeFileSync(`./users/${username}.json`, JSON.stringify(user))
-                    console.log("Password Changed.")
-                    sleep(2000).then(() => {
-                        console.clear();
-                        UserPanel(username, password, userID)
-                    });
-                })
-            } else if (answer == 2) {
+                console.log("Loading Admin Panel...")
+                sleep(2000).then(() => { AdminLogin(username, userID, roles) });
+            }
+        }
+        if (roles.includes("Owner")) {
+            console.log("4. Owner Panel\n")
+            if (answer == 4) {
                 console.clear()
-                fs.readdirSync("./login").forEach(file => {
-                    fs.unlinkSync(`./login/${file}`)
-                })
-                startup()
-            } else {
-                console.clear()
-                console.log("Invalid Input.")
+                console.log("Loading Owner Panel...")
                 sleep(2000).then(() => {
                     console.clear();
-                    UserPanel(username, password, userID)
+                    OwnerPanel(username, userID, roles)
                 });
             }
-        })
+        }
+
+
+        if (answer == 1) {
+            console.clear()
+            console.log("Loading Change Password...")
+            rl.question(`Enter 0 to go back.\nNew Password: `, (answer) => {
+                if (answer == 0) {
+                    console.clear()
+                    UserPanel(username, password, userID, roles)
+                }
+                const salt = bcrypt.genSaltSync(saltRounds);
+                const hash = bcrypt.hashSync(answer, salt);
+                const usercheck = fs.readFileSync(`./users/${username}.json`)
+                const user = JSON.parse(usercheck)
+                user.password = hash
+                fs.writeFileSync(`./users/${username}.json`, JSON.stringify(user))
+                console.log("Password Changed.")
+                sleep(2000).then(() => {
+                    console.clear();
+                    UserPanel(username, password, userID, roles)
+                });
+            })
+        } else if (answer == 2) {
+            console.clear()
+            fs.readdirSync("./login").forEach(file => {
+                fs.unlinkSync(`./login/${file}`)
+            })
+            startup()
+        } else {
+            console.clear()
+            console.log("Invalid Input.")
+            sleep(2000).then(() => {
+                console.clear();
+                UserPanel(username, password, userID, roles)
+            });
+        }
+    })
 }
 
-function AdminLogin(username, userID) {
-    if (userID == 1) {
+function AdminLogin(username, userID, Roles) {
+    if (userID == 1 && Roles.includes("Admin")) {
         console.clear()
         console.log("Loading Admin Panel...")
         rl.question(`Welcome ${username}\n1. Delete Account via username.\n`, (answer) => {
             if (answer == 1) {
-                rl.question(`Enter the Username to delete. \nUsername:\n`, (answer) => {
-                    if (fs.existsSync(`./users/${answer}.json`)) {
-                        if (answer == username) {
-                            console.log("You cannot delete your own account.")
-                            
-                            AdminLogin(username, userID)
-                        } else {
-                            fs.unlinkSync(`./users/${answer}.json`)
-                            console.log("User Deleted.")
-                            const useridcheck = fs.readFileSync(`./conf/userid.txt`)
-                            const userid = Number(useridcheck)
-                            const newuserid = userid - 1;
-                            const newuseridstring = newuserid.toString()
-                            fs.writeFileSync(`./conf/userid.txt`, newuseridstring)
-                            sleep(2000).then(() => {
-                                console.clear();
-                                AdminLogin(username, userID)
-                            });
-                        }
-
-                    } else {
-                        console.log("User not found.")
-                        sleep(2000).then(() => {
-                            console.clear();
-                            startup()
-                        });
-                    }
-                })
+                DeleteUser(userID, Roles, username)
             } else {
                 console.log("Invalid Input.")
                 sleep(2000).then(() => {
@@ -270,7 +278,71 @@ function AdminLogin(username, userID) {
         })
     } else {
         console.log("Auth Failed Error 4 || AUTH FAILED. NON-ADMIN")
-        sleep(2000).then(() => { console.clear(); startup() });
+        sleep(2000).then(() => {
+            console.clear();
+            startup()
+        });
+    }
+};
+
+function OwnersPanel(userID, Roles, username) {
+    if (userID == 1 && Roles.includes("Owner")) {
+        console.clear()
+        console.log("Loading Owners Panel...")
+        rl.question(`Welcome ${userID}\n1. Create Account\n2. Delete Account via username.\n3. Add user to Admin Group. \n4. Remove user from Admin Group.\n5. Check User's Roles.`, (answer) => {
+            if (answer == 1) {
+                userCreate()
+            } else if (answer == 2) {
+                DeleteUser(userID, Roles, username)
+            } else if (answer == 3) {
+
+            } else if (answer == 4) {
+
+            } else if (answer == 5) {
+
+            } else {
+                console.log("Invalid Input.")
+                sleep(2000).then(() => {
+                    console.clear();
+                    OwnersPanel(userID, Roles, username)
+                });
+            }
+        })
+    }
+};
+
+function DeleteUser(userID, Roles, username) {
+    if (Roles.includes("Owner") || Roles.includes("Admin")) {
+        console.clear()
+        rl.question(`Enter the Username to delete. \n Enter 0 to go back. \nUsername: `, (answer) => {
+            if (fs.existsSync(`./users/${answer}.json`)) {
+                if (answer == username) {
+                    console.log("You cannot delete your own account.")
+                    DeleteUser(userID, Roles, username)
+                } else if (answer == 0) {
+                    console.clear()
+                    startup()
+                } else {
+                    fs.unlinkSync(`./users/${answer}.json`)
+                    console.log("User Deleted.")
+                    const useridcheck = fs.readFileSync(`./conf/userid.txt`)
+                    const userid = Number(useridcheck)
+                    const newuserid = userid - 1;
+                    const newuseridstring = newuserid.toString()
+                    fs.writeFileSync(`./conf/userid.txt`, newuseridstring)
+                    sleep(2000).then(() => {
+                        console.clear();
+                        AdminLogin(username, userID, Roles)
+                    });
+                }
+            } else {
+                console.log("User not found.")
+                sleep(2000).then(() => {
+                    console.clear();
+                    startup()
+                });
+            }
+        })
     }
 }
 
