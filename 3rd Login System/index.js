@@ -42,6 +42,9 @@ function startup() {
 function userLogin() {
     console.clear()
     console.log("Loading User Login...")
+    if(!fs.existsSync("./users")) {
+        fs.mkdirSync("./users")
+    }
     rl.question(`Enter 0 to go back.\nUsername: `, (answer) => {
         let username = answer
         if (fs.existsSync(`./users/${answer}.json`)) {
@@ -129,9 +132,6 @@ function SignedIn(username, userID) {
     } else if (user.userID == userID) {
         console.clear()
         console.log(`Welcome ${user.username} || User ${userID}`)
-        rl.question(`e`, (answer) => {
-
-        })
     } else { console.log("Auth Failed Error 1 || AUTH FAILED. USERID + USERNAME DOES NOT MATCH.") }
 }
 
@@ -173,6 +173,7 @@ function AdminLogin(username, userID) {
         })
     } else {
         console.log("Auth Failed Error 4 || AUTH FAILED. NON-ADMIN")
+        sleep(2000).then(() => { console.clear(); startup() });
     }
 }
 
