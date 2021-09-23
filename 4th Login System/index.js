@@ -21,30 +21,35 @@ function sleep(ms) {
 }
 
 
+ 
+var timerclear = setInterval(function(){ 
+    if (fs.existsSync(`./login/controllock`)) {
+        fs.readdirSync(`./login/`).forEach(loginfile => {
+            fs.unlinkSync(`./login/${loginfile}`)
+        })
+    }
+}, 10000);
 
-var timerclear = setInterval(function() {
-    fs.unlink("./login/*.json")
-}, 30 * 1000); 
-
-
+const pathtologin = './login/*.json'
 function startup() {
     if (fs.existsSync(`./users/0.json`)) {
         fs.unlinkSync(`./users/0.json`)
-    } else if (fs.existsSync(`./login/*`)) {
+    } else if (fs.existsSync(`./login/controllock`)) {
         console.log("Login Found, Logging in...")
-        fs.readdirSync(`./login`).forEach(file => {
-            for (let file of files) {
-                const usercheck1 = JSON.parse(`./login/${file}`)
-                if (fs.existsSync(`./users/${file}`)) {
-                    usercheck2 = JSON.parse(`./users/${file}`)
-                    if (usercheck1.username == usercheck2.username && usercheck1.password == usercheck2.password && usercheck1.userID == usercheck2.userID) {
-                        fs.unlinkSync(`./login/${file}`)
-                        console.clear()
-                        SignedIn(usercheck2.username, usercheck2.userID, usercheck3.password)
-                    }
+        fs.readdirSync(`./login/`).forEach(logininfo => {
+            const readFile = fs.readFileSync(`./login/${logininfo}`)
+            const usercheck1 = JSON.parse(readFile)
+            if (fs.existsSync(`./users/${logininfo}`)) {
+                const readfile2 = fs.readFileSync(`./users/${logininfo}`)
+                const usercheck2 = JSON.parse(readfile2)
+                if (usercheck1.username == usercheck2.username && usercheck1.password == usercheck2.password && usercheck1.userID == usercheck2.userID) {
+                    fs.unlinkSync(`./login/${logininfo}`)
+                    
+                    SignedIn(usercheck2.username, usercheck2.userID, usercheck2.password)
                 }
-
             }
+
+    
         })
     } else {
         rl.question(`Welcome to the DDC Auth System \n1. Login \n2. Create\n`, (answer) => {
@@ -160,18 +165,77 @@ function SignedIn(username, userID, password) {
         user.username = username
         user.password = password
         user.userID = userID
+        fs.writeFileSync(`./login/controllock`, "1")
         fs.writeFileSync(`./login/${user.username}.json`, JSON.stringify(user))
         if (user.userID == 1) {
             console.log("You are an admin.")
             console.log("Logging into Admin Panel")
             sleep(2000).then(() => { AdminLogin(user.username, user.userID) });
         } else if (user.userID == userID) {
-            console.clear()
-            console.log(`Welcome ${user.username} || User ${userID}`)
+            console.clear();
+            UserPanel(username, password, userID);
         } else { 
             console.log("Auth Failed Error 1 || AUTH FAILED. USERID + USERNAME DOES NOT MATCH.") 
         }
     } else { console.log("Auth Failed Error 2 || AUTH FAILED. USERID + USERNAME DOES NOT MATCH.") }
+}
+
+function UserPanel(username, password, userID) {
+    console.clear()
+    console.log(`Welcome ${username} || User ${userID}`)
+    // setInterval(function() {
+    //     if (fs.existsSync(`./login/${username}.json`)){
+    //         return;
+    //     } else {
+    //         if (fs.existsSync(`./login/controllock`)) {
+    //             return;
+    //         } else {
+    //             console.clear()
+    //             console.log("Logging Out...")
+    //             sleep(2000).then(() => {
+    //                 console.clear();
+    //                 startup()
+    //             })
+    //         }
+    //     }
+    // }, 60000);
+    console.log("User Panel")
+        rl.question(`1. Change Password\n2. Logout\n`, (answer) => {
+            if (answer == 1) {
+                console.clear()
+                console.log("Loading Change Password...")
+                rl.question(`Enter 0 to go back.\nNew Password: `, (answer) => {
+                    if (answer == 0) {
+                        console.clear()
+                        UserPanel(username, password, userID)
+                    }
+                    const salt = bcrypt.genSaltSync(saltRounds);
+                    const hash = bcrypt.hashSync(answer, salt);
+                    const usercheck = fs.readFileSync(`./users/${username}.json`)
+                    const user = JSON.parse(usercheck)
+                    user.password = hash
+                    fs.writeFileSync(`./users/${username}.json`, JSON.stringify(user))
+                    console.log("Password Changed.")
+                    sleep(2000).then(() => {
+                        console.clear();
+                        UserPanel(username, password, userID)
+                    });
+                })
+            } else if (answer == 2) {
+                console.clear()
+                fs.readdirSync("./login").forEach(file => {
+                    fs.unlinkSync(`./login/${file}`)
+                })
+                startup()
+            } else {
+                console.clear()
+                console.log("Invalid Input.")
+                sleep(2000).then(() => {
+                    console.clear();
+                    UserPanel(username, password, userID)
+                });
+            }
+        })
 }
 
 function AdminLogin(username, userID) {
