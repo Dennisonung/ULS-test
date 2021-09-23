@@ -241,20 +241,26 @@ function UserPanel(username, password, userID) {
 function AdminLogin(username, userID) {
     if (userID == 1) {
         console.clear()
-        console.log("Loading Admin Login...")
+        console.log("Loading Admin Panel...")
         rl.question(`Welcome ${username}\n1. Delete Account via username.\n`, (answer) => {
             if (answer == 1) {
                 rl.question(`Enter the Username to delete. \nUsername:\n`, (answer) => {
                     if (fs.existsSync(`./users/${answer}.json`)) {
                         if (answer == username) {
                             console.log("You cannot delete your own account.")
-                            startup()
+                            
+                            AdminLogin(username, userID)
                         } else {
                             fs.unlinkSync(`./users/${answer}.json`)
                             console.log("User Deleted.")
+                            const useridcheck = fs.readFileSync(`./conf/userid.txt`)
+                            const userid = Number(useridcheck)
+                            const newuserid = userid - 1;
+                            const newuseridstring = newuserid.toString()
+                            fs.writeFileSync(`./conf/userid.txt`, newuseridstring)
                             sleep(2000).then(() => {
                                 console.clear();
-                                startup()
+                                AdminLogin(username, userID)
                             });
                         }
 
