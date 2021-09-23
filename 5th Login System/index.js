@@ -4,6 +4,7 @@ const readline = require('readline');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const saltRounds = 5;
+console.clear()
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
